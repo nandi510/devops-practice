@@ -102,7 +102,7 @@ pipeline {
             }
         }
 
-    }  // end stages
+    }  // end stages of cicd
 
     post {
         always {
