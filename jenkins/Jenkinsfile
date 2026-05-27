@@ -3,14 +3,14 @@ pipeline {
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')   // Jenkins credential ID
-        DOCKER_HUB_USER        = 'YOUR_DOCKERHUB_USERNAME'              // <-- CHANGE THIS
+        DOCKER_HUB_USER        = 'pradeep510'              // <-- CHANGE THIS
         IMAGE_NAME             = "${DOCKER_HUB_USER}/devops-practice-app"
         IMAGE_TAG              = "${BUILD_NUMBER}"
         IMAGE_LATEST           = "${IMAGE_NAME}:latest"
         IMAGE_VERSIONED        = "${IMAGE_NAME}:${IMAGE_TAG}"
         K8S_NAMESPACE          = 'devops-app'
         ARGOCD_APP_NAME        = 'devops-practice-app'
-        GIT_REPO               = 'https://github.com/YOUR_ORG/devops-practice.git'  // <-- CHANGE
+        GIT_REPO               = 'https://github.com/nandi510/devops-practice.git'  // <-- CHANGE
     }
 
     options {
