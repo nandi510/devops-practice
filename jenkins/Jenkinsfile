@@ -33,6 +33,7 @@ pipeline {
                 dir('app') {
                     sh 'npm ci'
                     sh 'npm test || true'   // set to 'npm test' once tests are written
+                    sh 'npm install'
                 }
             }
         }
