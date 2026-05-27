@@ -1,0 +1,33 @@
+# App Service (ClusterIP - exposed via Ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: devops-app
+  labels:
+    app: devops-app
+spec:
+  selector:
+    app: devops-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+# MySQL Service (Headless for StatefulSet + ClusterIP for app access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: devops-app
+  labels:
+    app: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP

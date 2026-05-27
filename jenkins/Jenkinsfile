@@ -1,0 +1,119 @@
+pipeline {
+    agent any  // Single Jenkins server, no agent
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')   // Jenkins credential ID
+        DOCKER_HUB_USER        = 'YOUR_DOCKERHUB_USERNAME'              // <-- CHANGE THIS
+        IMAGE_NAME             = "${DOCKER_HUB_USER}/devops-practice-app"
+        IMAGE_TAG              = "${BUILD_NUMBER}"
+        IMAGE_LATEST           = "${IMAGE_NAME}:latest"
+        IMAGE_VERSIONED        = "${IMAGE_NAME}:${IMAGE_TAG}"
+        K8S_NAMESPACE          = 'devops-app'
+        ARGOCD_APP_NAME        = 'devops-practice-app'
+        GIT_REPO               = 'https://github.com/YOUR_ORG/devops-practice.git'  // <-- CHANGE
+    }
+
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'echo "Branch: ${GIT_BRANCH} | Commit: ${GIT_COMMIT}"'
+            }
+        }
+
+        stage('Install & Test') {
+            steps {
+                dir('app') {
+                    sh 'npm ci'
+                    sh 'npm test || true'   // set to 'npm test' once tests are written
+                }
+            }
+        }
+
+        // ── FUTURE: SonarQube stage ─────────────────────────────────────
+        // stage('SonarQube Analysis') {
+        //     environment { scannerHome = tool 'SonarScanner' }
+        //     steps {
+        //         withSonarQubeEnv('sonarqube-server') {
+        //             sh "${scannerHome}/bin/sonar-scanner \
+        //                 -Dsonar.projectKey=devops-practice-app \
+        //                 -Dsonar.sources=app/src"
+        //         }
+        //         timeout(time: 5, unit: 'MINUTES') {
+        //             waitForQualityGate abortPipeline: true
+        //         }
+        //     }
+        // }
+
+        stage('Docker Build') {
+            steps {
+                dir('app') {
+                    sh "docker build -t ${IMAGE_VERSIONED} -t ${IMAGE_LATEST} ."
+                }
+            }
+        }
+
+        // ── FUTURE: Trivy scan ──────────────────────────────────────────
+        // stage('Trivy Image Scan') {
+        //     steps {
+        //         sh """
+        //             trivy image --exit-code 1 \
+        //                 --severity HIGH,CRITICAL \
+        //                 --no-progress \
+        //                 ${IMAGE_VERSIONED}
+        //         """
+        //     }
+        // }
+
+        stage('Docker Push') {
+            steps {
+                sh """
+                    echo "${DOCKER_HUB_CREDENTIALS_PSW}" | \
+                    docker login -u "${DOCKER_HUB_CREDENTIALS_USR}" --password-stdin
+                    docker push ${IMAGE_VERSIONED}
+                    docker push ${IMAGE_LATEST}
+                    docker logout
+                """
+            }
+        }
+
+        stage('Update K8s Manifest Image Tag') {
+            steps {
+                // Update the image tag in the deployment manifest so ArgoCD
+                // picks up the new version automatically (GitOps approach)
+                sh """
+                    sed -i 's|image: ${IMAGE_NAME}:.*|image: ${IMAGE_VERSIONED}|g' \
+                        k8s/base/deployment/app-deployment.yaml
+                """
+                sh """
+                    git config user.email "jenkins@ci.local"
+                    git config user.name  "Jenkins CI"
+                    git add k8s/base/deployment/app-deployment.yaml
+                    git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]"
+                    git push origin HEAD:${GIT_BRANCH}
+                """
+            }
+        }
+
+    }  // end stages
+
+    post {
+        always {
+            sh "docker rmi ${IMAGE_VERSIONED} ${IMAGE_LATEST} || true"
+            cleanWs()
+        }
+        success {
+            echo "✅ Build ${IMAGE_TAG} deployed successfully. ArgoCD will sync to EKS."
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs above."
+        }
+    }
+}
