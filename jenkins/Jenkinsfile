@@ -97,8 +97,8 @@ pipeline {
                     git config user.email "jenkins@ci.local"
                     git config user.name  "Jenkins CI"
                     git add k8s/base/deployment/app-deployment.yaml
-                    git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]"
-                    git push origin HEAD:${GIT_BRANCH}
+                    git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]" || true
+                    git push origin HEAD:${GIT_BRANCH} || true
                 """
             }
         }
