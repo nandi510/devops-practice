@@ -28,14 +28,14 @@ pipeline {
             }
         }
 
-        stage('Install & Test') {
-            steps {
-                dir('app') {
-                    sh 'npm ci'
-                    sh 'npm test || true'   // set to 'npm test' once tests are written
-                    sh 'npm install'
-                }
-            }
+       stage('Install & Test') {
+    steps {
+        dir('app') {
+            sh 'npm install'
+            sh 'npm test || true'
+        }
+    }
+}
         }
 
         // ── FUTURE: SonarQube stage ─────────────────────────────────────
