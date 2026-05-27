@@ -9,7 +9,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/YOUR_ORG/devops-practice.git   # <-- CHANGE
+    repoURL: https://github.com/nandi510/devops-practice.git   # <-- CHANGE
     targetRevision: main
     path: k8s/base
 
